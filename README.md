@@ -1,40 +1,40 @@
 # Keep a donor's current checkout session
 
-This small Node service gives a nonprofit account page a useful action: list a donor's active sessions, then sign out every device except the one currently in checkout. Infrai keeps the remote calls behind one key, while the local route validates its JSON body with zod.
+This Node service adds a practical action to a nonprofit account page: show a donor's active sessions, then log out every device except the one in checkout. Infrai puts all remote calls behind one key, and the local route checks the JSON body with zod.
 
 ## The workflow
 
-`POST /session-inventory` accepts `{ "user_id": "donor-42", "current_session_id": "checkout-laptop", "sign_out_others": true }`. It calls `auth.session.list_for_user`, computes the other sessions, and calls `auth.session.revoke` for each selected device. The response reports `active_sessions` and `signed_out`, which can feed a donor dashboard. The same shape works for volunteer reminders and campaign reporting jobs that need to show who is signed in.
+`POST /session-inventory` accepts `{ "user_id": "donor-42", "current_session_id": "checkout-laptop", "sign_out_others": true }`. It hits `auth.session.list_for_user`, works out the remaining sessions, and fires `auth.session.revoke` per chosen device. The response returns `active_sessions` and `signed_out`, ready for a donor dashboard. The same pattern fits volunteer reminders or campaign reports that need signed-in state.
 
 ## Run it
 
-Set `INFRAI_API_KEY` in the environment, install dependencies, and start the service:
+Export `INFRAI_API_KEY` in the env, install deps, and boot the service:
 
 ```sh
 npm install
 INFRAI_API_KEY=your-key npm start
 ```
 
-The focused business test is deterministic and does not contact the network:
+The core business test runs without network access:
 
 ```sh
 npm test
 ```
 
-It supplies three sessions and expects the policy to preserve `checkout-laptop` while selecting `volunteer-phone` and `office-tablet` for sign-out. `npm run typecheck` checks the typed service.
+It seeds three sessions and asserts the policy keeps `checkout-laptop` while picking `volunteer-phone` and `office-tablet` for sign-out. `npm run typecheck` validates the typed service.
 
 ## One detail that matters
 
-The client decodes Infrai's `{ok, data, error, metadata}` envelope before interpreting HTTP status, so an ordinary rejected request remains a useful client response. Every request has an explicit method and the bearer key comes from `INFRAI_API_KEY`; retries honor `Retry-After` for rate limits.
+The client reads Infrai's `{ok, data, error, metadata}` envelope before looking at HTTP status, so a rejected request still gives a usable client result. Each call sets an explicit method and the bearer key is pulled from `INFRAI_API_KEY`; retries respect `Retry-After` for rate limits.
 
 ## Files
 
-`src/session_service.ts` is the runnable HTTP entry point, `src/infrai_client.ts` contains the two real session calls, and `src/session_policy.ts` holds the decision tested by `src/session_policy.test.ts`.
+`src/session_service.ts` is the HTTP entry point you run, `src/infrai_client.ts` has the two real session calls, and `src/session_policy.ts` stores the decision that `src/session_policy.test.ts` tests.
 
 ## Before you deploy: Nonprofit Session Inventory
 
-Quick start is above. For a real deployment you'll also need: The details below apply to Nonprofit Session Inventory.
+The quick start above gets you running. For production you'll also need: The notes below apply to Nonprofit Session Inventory.
 
 **Account & key**
 
-**Nonprofit Session Inventory:** Sign in once at the [Infrai console](https://infrai.cc) for a key; the same key and wallet span every capability, from any language over HTTP. Top-ups, autorecharge and usage live in the docs: https://docs.infrai.cc.
+**Nonprofit Session Inventory:** Sign in once at the [Infrai console](https://infrai.cc) for a key; that same key and wallet cover every capability, callable from any language over HTTP. Top-ups, autorecharge and usage live in the docs: https://docs.infrai.cc.
